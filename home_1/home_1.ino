@@ -176,7 +176,7 @@ void setup() {
   server.on("/update", HTTP_GET, handleRelayControl);
   server.on("/wifi", HTTP_POST, handleWiFiCredentials);  // Handle Wi-Fi credentials via /wifi
   if (DEBUG_SW) Serial.println("[DEBUG] Setup complete. Waiting for connections...");
-  getRelayStateFromServer();  // Fetch relay state from server
+ // getRelayStateFromServer();  // Fetch relay state from server
 }
 
 void bluetoothConfig() {
@@ -292,12 +292,19 @@ void connectToWiFi() {
   if (WiFi.status() != WL_CONNECTED) {
     ssid = pref.getString("ssid", "");
     password = pref.getString("password", "");
+
+    if (ssid.isEmpty() || password.isEmpty()) {
+      if (DEBUG_SW)Serial.println("creadential not found: ");
+    }
+
     if (!ssid.isEmpty() && !password.isEmpty()) {
+      if (DEBUG_SW)Serial.println("ssid: " + ssid);
+      if (DEBUG_SW)Serial.println("password: " + password);
       WiFi.begin(ssid, password);
     }
   }
 
-   for (int retryCount = 0; WiFi.status() != WL_CONNECTED && retryCount < 20; retryCount++) {
+  for (int retryCount = 0; WiFi.status() != WL_CONNECTED && retryCount < 20; retryCount++) {
     Serial.printf("Attempt %d: Connecting...\n", retryCount + 1);
     delay(500);
   }

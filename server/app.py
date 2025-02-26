@@ -4,7 +4,7 @@ import pymongo
 
 app = Flask(__name__)
 # MongoDB Connection
-uri = "mongodb+srv://new_user1:deep617@cluster1.i8ag3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster1"
+uri = "mongodb+srv://new_user1:deep617@cluster1.i8ag3.mongodb.net/face_auth?retryWrites=true&w=majority&appName=Cluster1"
 client = MongoClient(uri)
 db = client['face_auth']
 collection = db['home_devices']
@@ -72,15 +72,15 @@ def save_wifi_credentials():
 
 # List of relays with name and state
 equipment = [
-    {"eqp_no": "1","eqp_name": "Eqp 1", "eqp_state": False},
-    {"eqp_no": "2","eqp_name": "Eqp 2", "eqp_state": False},
-    {"eqp_no": "3","eqp_name": "Eqp 3", "eqp_state": False},
-    {"eqp_no": "4","eqp_name": "Eqp 4", "eqp_state": False},
-    {"eqp_no": "5","eqp_name": "Eqp 5", "eqp_state": False},
-    {"eqp_no": "6","eqp_name": "Eqp 6", "eqp_state": False},
-    {"eqp_no": "7","eqp_name": "Eqp 7", "eqp_state": False},
-    {"eqp_no": "8","eqp_name": "Eqp 8", "eqp_state": False}
-    
+    {"eqp_no": "5","eqp_name": "Eqp 1", "eqp_state": False},
+    {"eqp_no": "18","eqp_name": "Eqp 2", "eqp_state": False},
+    {"eqp_no": "19","eqp_name": "Eqp 3", "eqp_state": False},
+    {"eqp_no": "21","eqp_name": "Eqp 4", "eqp_state": False},
+    {"eqp_no": "22","eqp_name": "Eqp 5", "eqp_state": False},
+    {"eqp_no": "23","eqp_name": "Eqp 6", "eqp_state": False},
+    {"eqp_no": "25","eqp_name": "Eqp 7", "eqp_state": False},
+    {"eqp_no": "26","eqp_name": "Eqp 8", "eqp_state": False}
+
 ]
 
 @app.route("/register_device", methods=["POST"])
