@@ -100,7 +100,7 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
         saveCredentials();
         if (DEBUG_SW)Serial.println("[INFO] Wifi data received and saved.");
       } else {
-        if (DEBUG_SW)Serial.println("[ERROR] Wifi data somthing in JSON.");
+        if (DEBUG_SW)Serial.println("[ERROR] Wifi data missing somthing in JSON.");
       }
 
 
@@ -118,7 +118,7 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
         addCredentials();
         if (DEBUG_SW)Serial.println("[INFO] Home data received and saved.");
       } else {
-        if (DEBUG_SW)Serial.println("[ERROR] Home data somthing in JSON.");
+        if (DEBUG_SW)Serial.println("[ERROR] Home data missing somthing in JSON.");
       }
     }
 };
@@ -143,22 +143,64 @@ void sendDeviceRegistration() {
 
     String jsonString;
     serializeJson(jsonDoc, jsonString);
+    if (DEBUG_SW) {
+      Serial.println("[DEBUG] JSON Payload:");
+      Serial.println(jsonString);
+    }
+
+    // Send POST request
     int httpResponseCode = http.POST(jsonString);
+
     if (httpResponseCode > 0) {
       String response = http.getString();
-      if (DEBUG_SW)Serial.println("Server Response: " + response);
+      if (DEBUG_SW) {
+        Serial.print("[DEBUG] Server Response Code: ");
+        Serial.println(httpResponseCode);
+        Serial.println("[DEBUG] Server Response: " + response);
+      }
       isDeviceRegister = false;
     } else {
-      if (DEBUG_SW)Serial.println("Error sending request.");
+      if (DEBUG_SW) {
+        Serial.print("[ERROR] HTTP Request failed, code: ");
+        Serial.println(httpResponseCode);
+        Serial.print("[ERROR] Error Message: ");
+        Serial.println(http.errorToString(httpResponseCode).c_str());
+      }
     }
+
     http.end();
   } else {
     if (DEBUG_SW)Serial.println("WiFi not connected.");
   }
 }
 
+
+void buttonHandler(AceButton* button, uint8_t eventType, uint8_t buttonState) {
+  if (eventType == AceButton::kEventClicked) {
+    int buttonPin = button->getPin();
+
+    String owner_id = pref.getString("owner_id", "");
+    String devices_id = pref.getString("devices_id", "");
+    String house_id = pref.getString("house_id", "");
+    String floor_id = pref.getString("floor_id", "");
+    String room_id = pref.getString("room_id", "");
+
+    for (int i = 0; i < NUM_RELAYS; i++) {
+      if (buttonPin == switchPins[i]) {
+        toggleStates[i] = !toggleStates[i];
+        digitalWrite(relayPins[i], toggleStates[i]);
+        Serial.printf("Button %d toggled Relay %d\n", (int)(i + 1), (int)(i + 1));
+        String switchNo = String(switchPins[i]);  // ✅ FIXED conversion
+        updateRelayStateToServer(owner_id, devices_id, house_id, floor_id, room_id, relayPins[i], switchNo, toggleStates[i] );
+        break;
+      }
+    }
+  }
+}
+
 void setup() {
   Serial.begin(115200);
+  if (DEBUG_SW)Serial.println("setup start >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
   for (int i = 0; i < NUM_RELAYS; i++) {
     pinMode(switchPins[i], INPUT_PULLUP);
     pinMode(relayPins[i], OUTPUT);
@@ -173,10 +215,13 @@ void setup() {
     connectToWiFi();
   }
   bluetoothConfig();
-  server.on("/update", HTTP_GET, handleRelayControl);
-  server.on("/wifi", HTTP_POST, handleWiFiCredentials);  // Handle Wi-Fi credentials via /wifi
   if (DEBUG_SW) Serial.println("[DEBUG] Setup complete. Waiting for connections...");
- // getRelayStateFromServer();  // Fetch relay state from server
+  if (WiFi.status() == WL_CONNECTED) {
+    server.on("/update", HTTP_GET, handleRelayControl);
+    server.on("/wifi", HTTP_POST, handleWiFiCredentials);  // Handle Wi-Fi credentials via /wifi
+  }
+  // getRelayStateFromServer();  // Fetch relay state from server
+  if (DEBUG_SW)Serial.println("setup start >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 }
 
 void bluetoothConfig() {
@@ -197,6 +242,7 @@ void bluetoothConfig() {
 }
 
 void loop() {
+  if (DEBUG_SW)Serial.println("loop start >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
   for (int i = 0; i < NUM_RELAYS; i++) {
     buttons[i].check();
   }
@@ -224,30 +270,11 @@ void loop() {
       sendDeviceRegistration();
     }
   }
+
+  if (DEBUG_SW)Serial.println("loop end >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ");
 }
 
-void buttonHandler(AceButton* button, uint8_t eventType, uint8_t buttonState) {
-  if (eventType == AceButton::kEventClicked) {
-    int buttonPin = button->getPin();
 
-    String owner_id = pref.getString("owner_id", "");
-    String devices_id = pref.getString("devices_id", "");
-    String house_id = pref.getString("house_id", "");
-    String floor_id = pref.getString("floor_id", "");
-    String room_id = pref.getString("room_id", "");
-
-    for (int i = 0; i < NUM_RELAYS; i++) {
-      if (buttonPin == switchPins[i]) {
-        toggleStates[i] = !toggleStates[i];
-        digitalWrite(relayPins[i], toggleStates[i]);
-        Serial.printf("Button %d toggled Relay %d\n", (int)(i + 1), (int)(i + 1));
-        String switchNo = String(switchPins[i]);  // ✅ FIXED conversion
-        updateRelayStateToServer(owner_id, devices_id, house_id, floor_id, room_id, relayPins[i], switchNo, toggleStates[i] );
-        break;
-      }
-    }
-  }
-}
 
 void handleRelayControl() {
   if (!server.hasArg("owner_id") || !server.hasArg("devices_id") || !server.hasArg("house_id") ||
