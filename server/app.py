@@ -3,13 +3,21 @@ from pymongo import ASCENDING, MongoClient
 import pymongo 
 
 app = Flask(__name__)
-# MongoDB Connection
-uri = "mongodb+srv://new_user1:deep617@cluster1.i8ag3.mongodb.net/face_auth?retryWrites=true&w=majority&appName=Cluster1"
-client = MongoClient(uri)
-db = client['face_auth']
-collection = db['home_devices']
+try:
+    uri = f"mongodb+srv://new_user1:deep617@cluster1.i8ag3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster1"
+    # Create a new client and connect to the server
+    client = MongoClient(uri)
+    db = client['face_auth']
+    collection = db['home_devices']
+    print("Databases:", client.list_database_names())  # Check available databases
+    print("✅ Connected to MongoDB successfully!")
+    #Create an index on 'device_id' for faster queries
+    collection.create_index([("devices_id", ASCENDING)])
+except Exception as e:
+    print("❌ MongoDB connection error:", e)
+
 # Create an index on 'device_id' for faster queries
-collection.create_index([("devices_id", ASCENDING)])
+#collection.create_index([("devices_id", ASCENDING)])
 
 @app.route('/update_eqp', methods=['POST'])
 def update_eqp_state():
